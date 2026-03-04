@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download database backup
+        run: |
+          # 创建数据库字典文件
+          echo "# Chemex 更新日志" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## ${{ github.ref_name }}" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "发布时间: ${{ github.event.repository.updated_at }}" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "查看完整变更: https://github.com/lovewsm/chemex/compare/${{ github.event.repository.default_branch }}...${{ github.ref_name }}" >> CHANGELOG.md
+
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'beta') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
